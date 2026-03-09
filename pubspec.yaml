@@ -1,0 +1,137 @@
+name: krivana
+description: "AI-powered website and mobile app builder. Open source."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^3.2.1
+  riverpod: ^3.2.1
+  riverpod_annotation: ^4.0.2
+
+  # Navigation
+  go_router: ^17.1.0
+
+  # Networking
+  dio: ^5.9.2
+  retrofit: ^4.9.2
+  web_socket_channel: ^3.0.3
+  http: ^1.6.0
+
+  # Local Storage
+  flutter_secure_storage: ^10.0.0
+  hive_flutter: ^1.1.0
+  hive: ^2.2.3
+  shared_preferences: ^2.3.2
+
+  # UI & Animations
+  flutter_animate: ^4.5.2
+  lottie: ^3.3.2
+  shimmer: ^3.0.0
+  animations: ^2.1.1
+
+  # SVG
+  flutter_svg: ^2.2.4
+
+  # Code Editor
+  re_editor: ^0.8.0
+  re_highlight: ^0.0.3
+
+  # QR & Camera
+  mobile_scanner: ^7.2.0
+  qr_flutter: ^4.1.0
+  permission_handler: ^12.0.1
+  camera: ^0.12.0
+
+  # File Handling
+  file_picker: ^10.3.10
+  path_provider: ^2.1.5
+  path: ^1.9.0
+  mime: ^2.0.0
+
+  # GitHub Integration
+  github: ^9.25.0
+  oauth2: ^2.0.5
+  flutter_appauth: ^12.0.0
+
+  # Notifications
+  flutter_local_notifications: ^21.0.0
+  firebase_core: ^4.5.0
+  firebase_messaging: ^16.1.2
+
+  # Markdown Rendering
+  flutter_markdown: ^0.7.7+1
+  markdown: ^7.3.0
+
+  # Image & Media
+  cached_network_image: ^3.4.1
+  image_picker: ^1.2.1
+
+  # Utilities
+  url_launcher: ^6.3.2
+  share_plus: ^12.0.1
+  package_info_plus: ^9.0.0
+  connectivity_plus: ^7.0.0
+  intl: ^0.20.2
+  uuid: ^4.5.3
+  crypto: ^3.0.7
+  collection: ^1.19.1
+  equatable: ^2.0.7
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.11.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  build_runner: ^2.12.2
+  riverpod_generator: ^4.0.3
+  retrofit_generator: ^10.2.3
+  json_serializable: ^6.13.0
+  freezed: ^3.0.6
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.5
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/svgs/
+    - assets/svgs/icons/
+    - assets/svgs/icons/nav/
+    - assets/svgs/icons/actions/
+    - assets/svgs/icons/features/
+    - assets/svgs/icons/files/
+    - assets/svgs/icons/chat/
+    - assets/svgs/icons/status/
+    - assets/svgs/avatars/
+    - assets/svgs/providers/
+    - assets/svgs/social/
+    - assets/svgs/logos/
+    - assets/svgs/illustrations/
+    - assets/animations/
+    - assets/fonts/
+
+  fonts:
+    - family: Brockmann
+      fonts:
+        - asset: assets/fonts/brockmann-regular.ttf
+        - asset: assets/fonts/brockmann-medium.ttf
+          weight: 500
+        - asset: assets/fonts/brockmann-semibold.ttf
+          weight: 600
+        - asset: assets/fonts/brockmann-bold.ttf
+          weight: 700
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon.png"
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: "assets/icon.png"
