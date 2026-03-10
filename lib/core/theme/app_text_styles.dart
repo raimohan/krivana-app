@@ -5,7 +5,7 @@ abstract class AppTextStyles {
   static const splashTitle = TextStyle(
     fontFamily: 'Brockmann',
     fontSize: 36,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w500,
     color: Colors.white,
     letterSpacing: -0.5,
   );

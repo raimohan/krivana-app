@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/svg_paths.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../data/models/project_model.dart';
 import '../../widgets/glass/glass_container.dart';
+import '../../widgets/svg/krivana_svg.dart';
 
 class AllProjectsScreen extends ConsumerStatefulWidget {
   const AllProjectsScreen({super.key});
@@ -21,9 +23,30 @@ enum _ProjectFilter { all, created, github }
 class _AllProjectsScreenState extends ConsumerState<AllProjectsScreen> {
   _ProjectFilter _filter = _ProjectFilter.all;
   bool _isGrid = true;
+  List<ProjectModel> _projects = [];
 
-  // TODO: Replace with real data from backend
-  final List<ProjectModel> _projects = [];
+  @override
+  void initState() {
+    super.initState();
+    _loadProjects();
+  }
+
+  void _loadProjects() {
+    final box = Hive.box(AppConstants.hiveProjectsBox);
+    final raw = box.values.toList();
+    setState(() {
+      _projects = raw
+          .whereType<Map>()
+          .map((e) => ProjectModel.fromJson(Map<String, dynamic>.from(e)))
+          .toList()
+        ..sort((a, b) {
+          if (a.isPinned && !b.isPinned) return -1;
+          if (!a.isPinned && b.isPinned) return 1;
+          return (b.updatedAt ?? DateTime(2000))
+              .compareTo(a.updatedAt ?? DateTime(2000));
+        });
+    });
+  }
 
   List<ProjectModel> get _filtered {
     return switch (_filter) {
@@ -51,8 +74,13 @@ class _AllProjectsScreenState extends ConsumerState<AllProjectsScreen> {
                 children: [
                   GestureDetector(
                     onTap: () => context.pop(),
-                    child: SvgPicture.asset(SvgPaths.icBack,
-                        width: 24, height: 24),
+                    child: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 20,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Text(
@@ -117,8 +145,7 @@ class _AllProjectsScreenState extends ConsumerState<AllProjectsScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          SvgPicture.asset(SvgPaths.illustEmptyProjects,
-                              width: 120, height: 120),
+                          KrivanaSvg(SvgPaths.illustEmptyProjects, size: 120),
                           const SizedBox(height: 16),
                           Text(
                             'No projects found',
@@ -223,8 +250,7 @@ class _ProjectCard extends StatelessWidget {
                 if (project.isPinned)
                   Padding(
                     padding: const EdgeInsets.only(right: 6),
-                    child: SvgPicture.asset(SvgPaths.icPin,
-                        width: 12, height: 12),
+                    child: KrivanaSvg(SvgPaths.icPin, size: 12),
                   ),
                 Expanded(
                   child: Text(
@@ -240,8 +266,7 @@ class _ProjectCard extends StatelessWidget {
                   ),
                 ),
                 if (project.isGitHubImported)
-                  SvgPicture.asset(SvgPaths.logoGitHub,
-                      width: 16, height: 16),
+                  KrivanaSvg(SvgPaths.logoGitHub, size: 16, autoTheme: false),
               ],
             ),
             Text(
@@ -262,40 +287,50 @@ class _ProjectCard extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => GlassContainer(
-        borderRadius: 20,
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: SvgPicture.asset(SvgPaths.icAiChat,
-                  width: 20, height: 20),
-              title: const Text('Open in Chat'),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/project-chat/${project.id}');
-              },
-            ),
-            ListTile(
-              leading:
-                  SvgPicture.asset(SvgPaths.icEdit, width: 20, height: 20),
-              title: const Text('Rename'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading:
-                  SvgPicture.asset(SvgPaths.icPin, width: 20, height: 20),
-              title: Text(project.isPinned ? 'Unpin' : 'Pin'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: SvgPicture.asset(SvgPaths.icTrash,
-                  width: 20, height: 20),
-              title: const Text('Delete'),
-              onTap: () => Navigator.pop(context),
-            ),
-          ],
+      useSafeArea: true,
+      builder: (_) => SafeArea(
+        child: GlassContainer(
+          borderRadius: 20,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: KrivanaSvg(SvgPaths.icAiChat, size: 20),
+                title: Text('Open in Chat',
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white : Colors.black)),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/project-chat/${project.id}');
+                },
+              ),
+              ListTile(
+                leading: KrivanaSvg(SvgPaths.icEdit, size: 20),
+                title: Text('Rename',
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white : Colors.black)),
+                onTap: () => Navigator.pop(context),
+              ),
+              ListTile(
+                leading: KrivanaSvg(SvgPaths.icPin, size: 20),
+                title: Text(project.isPinned ? 'Unpin' : 'Pin',
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white : Colors.black)),
+                onTap: () => Navigator.pop(context),
+              ),
+              ListTile(
+                leading: KrivanaSvg(SvgPaths.icTrash, size: 20,
+                    color: AppColors.error),
+                title: const Text('Delete',
+                    style: TextStyle(color: AppColors.error)),
+                onTap: () => Navigator.pop(context),
+              ),
+            ],
+          ),
         ),
       ),
     );

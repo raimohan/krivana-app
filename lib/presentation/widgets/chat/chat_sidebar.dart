@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/constants/svg_paths.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../data/models/chat_model.dart';
 import '../../widgets/glass/glass_container.dart';
+import '../../widgets/svg/krivana_svg.dart';
 
 class ChatSidebar extends StatelessWidget {
   const ChatSidebar({
@@ -27,9 +27,37 @@ class ChatSidebar extends StatelessWidget {
   final ValueChanged<String>? onDeleteSession;
   final ValueChanged<String>? onPinSession;
 
+  Map<String, List<ChatSession>> _categorize() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    final todayList = <ChatSession>[];
+    final yesterdayList = <ChatSession>[];
+    final previousList = <ChatSession>[];
+
+    for (final s in sessions) {
+      final created = s.createdAt ?? DateTime(2000);
+      if (created.isAfter(today)) {
+        todayList.add(s);
+      } else if (created.isAfter(yesterday)) {
+        yesterdayList.add(s);
+      } else {
+        previousList.add(s);
+      }
+    }
+
+    return {
+      'Today': todayList,
+      'Yesterday': yesterdayList,
+      'Previous': previousList,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final categories = _categorize();
 
     return GestureDetector(
       onHorizontalDragUpdate: (details) {
@@ -64,8 +92,7 @@ class ChatSidebar extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        SvgPicture.asset(SvgPaths.icPlus,
-                            width: 16, height: 16),
+                        KrivanaSvg(SvgPaths.icPlus, size: 16),
                         const SizedBox(width: 8),
                         Text(
                           'New Chat',
@@ -82,89 +109,86 @@ class ChatSidebar extends StatelessWidget {
                 ),
               ),
 
-              // Chat list
+              // Chat list by categories
               Expanded(
-                child: ListView.builder(
+                child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: sessions.length,
-                  itemBuilder: (_, index) {
-                    final session = sessions[index];
-                    return GestureDetector(
-                      onTap: () => onSelectSession(session.id),
-                      onLongPress: () {
-                        HapticFeedback.mediumImpact();
-                        _showSessionMenu(context, session);
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: GlassContainer(
-                          borderRadius: 12,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 10),
-                          tintOpacity: 0.04,
+                  children: [
+                    for (final entry in categories.entries)
+                      if (entry.value.isNotEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(
+                              left: 4, top: 12, bottom: 6),
                           child: Text(
-                            session.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.body.copyWith(
-                              fontSize: 13,
+                            entry.key,
+                            style: AppTextStyles.caption.copyWith(
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
                               color: isDark
-                                  ? AppColors.darkTextPrimary
-                                  : AppColors.lightTextPrimary,
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.lightTextSecondary,
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                        ...entry.value.map((session) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2),
+                              child: GestureDetector(
+                                onTap: () => onSelectSession(session.id),
+                                onLongPress: () {
+                                  HapticFeedback.mediumImpact();
+                                  _showSessionMenu(context, session);
+                                },
+                                child: GlassContainer(
+                                  borderRadius: 12,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
+                                  child: Row(
+                                    children: [
+                                      if (session.isPinned)
+                                        Padding(
+                                          padding:
+                                              const EdgeInsets.only(right: 6),
+                                          child: KrivanaSvg(SvgPaths.icPin,
+                                              size: 12,
+                                              color: AppColors.accentPurple),
+                                        ),
+                                      Expanded(
+                                        child: Text(
+                                          session.title,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: AppTextStyles.body.copyWith(
+                                            fontSize: 13,
+                                            color: isDark
+                                                ? AppColors.darkTextPrimary
+                                                : AppColors.lightTextPrimary,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            )),
+                      ],
+                  ],
                 ),
               ),
 
-              // Pinned section
-              if (pinnedSessions.isNotEmpty) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Pinned',
-                      style: AppTextStyles.caption.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+              // View all at bottom
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: GestureDetector(
+                  onTap: onClose,
+                  child: Text(
+                    'View All',
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.accentPurple,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 60,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    itemCount: pinnedSessions.take(3).length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (_, index) {
-                      final pinned = pinnedSessions[index];
-                      return GestureDetector(
-                        onTap: () => onSelectSession(pinned.id),
-                        child: GlassContainer(
-                          borderRadius: 12,
-                          padding: const EdgeInsets.all(10),
-                          child: SizedBox(
-                            width: 80,
-                            child: Text(
-                              pinned.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.caption,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
+              ),
             ],
           ),
         ),
@@ -176,37 +200,40 @@ class ChatSidebar extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => GlassContainer(
-        borderRadius: 20,
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: SvgPicture.asset(SvgPaths.icPin,
-                  width: 20, height: 20),
-              title: Text(session.isPinned ? 'Unpin' : 'Pin'),
-              onTap: () {
-                Navigator.pop(context);
-                onPinSession?.call(session.id);
-              },
-            ),
-            ListTile(
-              leading: SvgPicture.asset(SvgPaths.icEdit,
-                  width: 20, height: 20),
-              title: const Text('Edit title'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: SvgPicture.asset(SvgPaths.icTrash,
-                  width: 20, height: 20),
-              title: const Text('Delete'),
-              onTap: () {
-                Navigator.pop(context);
-                onDeleteSession?.call(session.id);
-              },
-            ),
-          ],
+      builder: (_) => SafeArea(
+        child: GlassContainer(
+          borderRadius: 20,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: KrivanaSvg(SvgPaths.icPin, size: 20),
+                title: Text(
+                  session.isPinned ? 'Unpin' : 'Pin',
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  onPinSession?.call(session.id);
+                },
+              ),
+              ListTile(
+                leading: KrivanaSvg(SvgPaths.icTrash, size: 20,
+                    color: AppColors.error),
+                title: const Text('Delete',
+                    style: TextStyle(color: AppColors.error)),
+                onTap: () {
+                  Navigator.pop(context);
+                  onDeleteSession?.call(session.id);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

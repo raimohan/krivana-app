@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/svg_paths.dart';
 import '../../../core/theme/app_colors.dart';
@@ -11,6 +10,7 @@ import '../../../presentation/providers/app_providers.dart';
 import '../../../presentation/widgets/common/krivana_button.dart';
 import '../../../presentation/widgets/common/krivana_text_field.dart';
 import '../../../presentation/widgets/glass/glass_container.dart';
+import '../../../presentation/widgets/svg/krivana_svg.dart';
 import '../../../services/backend/backend_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/constants/app_constants.dart';
@@ -89,7 +89,15 @@ class _BackendConnectScreenState extends ConsumerState<BackendConnectScreen>
 
         // Auto-advance after success animation
         await Future.delayed(const Duration(milliseconds: 800));
-        if (mounted) context.go('/api-keys');
+        if (mounted) {
+          // Check if already onboarded - if yes, go back to dashboard, else continue to API keys
+          final isOnboarded = ref.read(onboardingCompleteProvider);
+          if (isOnboarded) {
+            context.pop();
+          } else {
+            context.go('/api-keys');
+          }
+        }
       } else {
         setState(() {
           _isLoading = false;
@@ -120,7 +128,7 @@ class _BackendConnectScreenState extends ConsumerState<BackendConnectScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Logo
-                SvgPicture.asset(
+                const KrivanaSvg(
                   SvgPaths.krivanaLogo,
                   width: 48,
                   height: 48,
@@ -194,8 +202,11 @@ class _BackendConnectScreenState extends ConsumerState<BackendConnectScreen>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            SvgPicture.asset(SvgPaths.icQrScan,
-                                width: 18, height: 18),
+                            const KrivanaSvg(
+                              SvgPaths.icQrScan,
+                              width: 18,
+                              height: 18,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               'or scan QR code',

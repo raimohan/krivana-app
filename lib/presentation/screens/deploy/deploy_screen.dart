@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/svg_paths.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../widgets/glass/glass_container.dart';
+import '../../widgets/svg/krivana_svg.dart';
 
 enum _DeployTarget { vercel, netlify, githubPages, custom }
 
@@ -34,8 +34,13 @@ class _DeployScreenState extends ConsumerState<DeployScreen> {
                 children: [
                   GestureDetector(
                     onTap: () => context.pop(),
-                    child: SvgPicture.asset(SvgPaths.icBack,
-                        width: 24, height: 24),
+                    child: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 20,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Text(
@@ -158,7 +163,7 @@ class _DeployCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            SvgPicture.asset(svgPath, width: 32, height: 32),
+            KrivanaSvg(svgPath, size: 32, autoTheme: false),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -185,8 +190,7 @@ class _DeployCard extends StatelessWidget {
                 ],
               ),
             ),
-            SvgPicture.asset(SvgPaths.icChevronRight,
-                width: 16, height: 16),
+            KrivanaSvg(SvgPaths.icChevronRight, size: 16),
           ],
         ),
       ),

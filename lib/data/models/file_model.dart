@@ -6,6 +6,7 @@ class FileItem {
     this.children = const [],
     this.size,
     this.lastModified,
+    this.content,
   });
 
   final String name;
@@ -14,6 +15,7 @@ class FileItem {
   final List<FileItem> children;
   final int? size;
   final DateTime? lastModified;
+  final String? content;
 
   String get extension {
     if (isDirectory) return '';
@@ -34,6 +36,7 @@ class FileItem {
       lastModified: json['last_modified'] != null
           ? DateTime.parse(json['last_modified'] as String)
           : null,
+      content: json['content'] as String?,
     );
   }
 
@@ -44,5 +47,6 @@ class FileItem {
         'children': children.map((e) => e.toJson()).toList(),
         'size': size,
         'last_modified': lastModified?.toIso8601String(),
+        'content': content,
       };
 }

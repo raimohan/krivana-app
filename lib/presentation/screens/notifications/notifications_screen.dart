@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -11,6 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../data/models/notification_model.dart';
 import '../../widgets/glass/glass_container.dart';
+import '../../widgets/svg/krivana_svg.dart';
 
 final _notificationsProvider =
     StateProvider<List<AppNotification>>((ref) {
@@ -38,6 +38,14 @@ final _notificationsProvider =
         .compareTo(a.createdAt ?? DateTime(2000)));
 });
 
+Future<void> _persistNotifications(List<AppNotification> notifications) async {
+  final box = Hive.box(AppConstants.hiveNotificationsBox);
+  await box.clear();
+  for (final n in notifications) {
+    await box.put(n.id, n.toJson());
+  }
+}
+
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
@@ -58,8 +66,13 @@ class NotificationsScreen extends ConsumerWidget {
                 children: [
                   GestureDetector(
                     onTap: () => context.pop(),
-                    child: SvgPicture.asset(SvgPaths.icBack,
-                        width: 24, height: 24),
+                    child: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 20,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -74,12 +87,10 @@ class NotificationsScreen extends ConsumerWidget {
                   ),
                   if (notifications.isNotEmpty)
                     GestureDetector(
-                      onTap: () {
+                      onTap: () async {
                         HapticFeedback.lightImpact();
                         ref.read(_notificationsProvider.notifier).state = [];
-                        final box =
-                            Hive.box(AppConstants.hiveNotificationsBox);
-                        box.clear();
+                        await _persistNotifications(const []);
                       },
                       child: Text(
                         'Clear All',
@@ -98,8 +109,11 @@ class NotificationsScreen extends ConsumerWidget {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          SvgPicture.asset(SvgPaths.icNotifications,
-                              width: 48, height: 48),
+                          KrivanaSvg(
+                            SvgPaths.icNotifications,
+                            size: 48,
+                            animate: false,
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             'No notifications',
@@ -129,6 +143,7 @@ class NotificationsScreen extends ConsumerWidget {
                               ref
                                   .read(_notificationsProvider.notifier)
                                   .state = updated;
+                              _persistNotifications(updated);
                             }
                           },
                           onDismiss: () {
@@ -137,6 +152,7 @@ class NotificationsScreen extends ConsumerWidget {
                               ..removeAt(index);
                             ref.read(_notificationsProvider.notifier).state =
                                 updated;
+                            _persistNotifications(updated);
                           },
                         );
                       },
@@ -189,7 +205,47 @@ class _NotificationTile extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(_icon, size: 22, color: AppColors.accentPurple),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.15)
+                            : Colors.black.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(9),
+                      child: Image.asset(
+                        'assets/icon.png',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: -4,
+                    bottom: -4,
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      decoration: const BoxDecoration(
+                        color: AppColors.accentPurple,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _icon,
+                        size: 11,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

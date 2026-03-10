@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/constants/svg_paths.dart';
 import '../../../core/theme/app_colors.dart';
@@ -12,6 +11,7 @@ import '../../widgets/chat/chat_input_bar.dart';
 import '../../widgets/chat/chat_sidebar.dart';
 import '../../widgets/chat/thinking_indicator.dart';
 import '../../widgets/glass/glass_container.dart';
+import '../../widgets/svg/krivana_svg.dart';
 
 const _projectPromptChips = [
   'Build a landing page',
@@ -124,8 +124,11 @@ class _ProjectChatScreenState extends ConsumerState<ProjectChatScreen> {
                           HapticFeedback.lightImpact();
                           setState(() => _sidebarOpen = !_sidebarOpen);
                         },
-                        child: SvgPicture.asset(SvgPaths.icMenuHamburger,
-                            width: 24, height: 24),
+                        child: const KrivanaSvg(
+                          SvgPaths.icMenuHamburger,
+                          width: 24,
+                          height: 24,
+                        ),
                       ),
                       const Spacer(),
                       // Chat / Preview toggle
@@ -152,8 +155,11 @@ class _ProjectChatScreenState extends ConsumerState<ProjectChatScreen> {
                       const Spacer(),
                       GestureDetector(
                         onTap: () {},
-                        child: SvgPicture.asset(SvgPaths.icSettings,
-                            width: 22, height: 22),
+                        child: const KrivanaSvg(
+                          SvgPaths.icSettings,
+                          width: 22,
+                          height: 22,
+                        ),
                       ),
                     ],
                   ),
@@ -275,7 +281,7 @@ class _ProjectChatScreenState extends ConsumerState<ProjectChatScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SvgPicture.asset(SvgPaths.icPreview, width: 56, height: 56),
+          const KrivanaSvg(SvgPaths.icPreview, width: 56, height: 56),
           const SizedBox(height: 16),
           Text(
             'Preview will appear here',

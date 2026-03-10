@@ -18,4 +18,6 @@ abstract class AppConstants {
   static const settingsThemeMode = 'theme_mode';
   static const settingsGitHubConnected = 'github_connected';
   static const settingsOnboardingComplete = 'onboarding_complete';
+  static const settingsLastAutoNotificationAt = 'last_auto_notification_at';
+  static const settingsAutoNotificationIndex = 'auto_notification_index';
 }

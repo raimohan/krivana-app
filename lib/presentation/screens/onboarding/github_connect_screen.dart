@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/constants/app_constants.dart';
@@ -82,8 +81,13 @@ class _GitHubConnectScreenState extends ConsumerState<GitHubConnectScreen> {
                 children: [
                   GestureDetector(
                     onTap: () => context.pop(),
-                    child: SvgPicture.asset(SvgPaths.icBack,
-                        width: 24, height: 24),
+                    child: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 20,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
+                    ),
                   ),
                   GestureDetector(
                     onTap: _finishOnboarding,
@@ -135,6 +139,8 @@ class _GitHubConnectScreenState extends ConsumerState<GitHubConnectScreen> {
                           svgIconPath: SvgPaths.logoGitHub,
                           onTap: _isLoading ? null : _connectGitHub,
                           isLoading: _isLoading,
+                          backgroundColor: const Color(0xFF24292F),
+                          foregroundColor: Colors.white,
                           width: double.infinity,
                         ),
                       ],

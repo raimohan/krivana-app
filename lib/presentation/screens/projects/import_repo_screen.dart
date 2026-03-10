@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/svg_paths.dart';
 import '../../../core/theme/app_colors.dart';
@@ -9,6 +8,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../presentation/providers/app_providers.dart';
 import '../../widgets/glass/glass_container.dart';
 import '../../widgets/common/krivana_button.dart';
+import '../../widgets/svg/krivana_svg.dart';
 
 class ImportRepoScreen extends ConsumerStatefulWidget {
   const ImportRepoScreen({super.key});
@@ -57,8 +57,13 @@ class _ImportRepoScreenState extends ConsumerState<ImportRepoScreen> {
                 children: [
                   GestureDetector(
                     onTap: () => context.pop(),
-                    child: SvgPicture.asset(SvgPaths.icBack,
-                        width: 24, height: 24),
+                    child: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 20,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Text(
@@ -83,8 +88,11 @@ class _ImportRepoScreenState extends ConsumerState<ImportRepoScreen> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  SvgPicture.asset(SvgPaths.logoGitHub,
-                                      width: 56, height: 56),
+                                  const KrivanaSvg(
+                                    SvgPaths.logoGitHub,
+                                    width: 56,
+                                    height: 56,
+                                  ),
                                   const SizedBox(height: 16),
                                   Text(
                                     'No repositories found',
@@ -119,7 +127,7 @@ class _ImportRepoScreenState extends ConsumerState<ImportRepoScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SvgPicture.asset(SvgPaths.logoGitHub, width: 56, height: 56),
+            const KrivanaSvg(SvgPaths.logoGitHub, width: 56, height: 56),
             const SizedBox(height: 20),
             Text(
               'Connect GitHub to import repos',

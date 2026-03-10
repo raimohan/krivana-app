@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/constants/svg_paths.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../widgets/glass/glass_container.dart';
+import '../../widgets/svg/krivana_svg.dart';
 
 class ChatInputBar extends StatelessWidget {
   const ChatInputBar({
@@ -32,13 +32,14 @@ class ChatInputBar extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // Attach button
+          // Upload/attach button - circular like send
           GestureDetector(
             onTap: onAttach,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: SvgPicture.asset(SvgPaths.icUpload,
-                  width: 22, height: 22),
+            child: GlassContainer(
+              borderRadius: 50,
+              padding: const EdgeInsets.all(8),
+              tintOpacity: 0.08,
+              child: KrivanaSvg(SvgPaths.icUpload, size: 18),
             ),
           ),
           const SizedBox(width: 10),
@@ -46,7 +47,7 @@ class ChatInputBar extends StatelessWidget {
           // Text field
           Expanded(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 48, maxHeight: 120),
+              constraints: const BoxConstraints(minHeight: 40, maxHeight: 120),
               child: TextField(
                 controller: controller,
                 maxLines: null,
@@ -64,7 +65,7 @@ class ChatInputBar extends StatelessWidget {
                         : AppColors.lightTextSecondary,
                   ),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 ),
               ),
             ),
@@ -72,13 +73,14 @@ class ChatInputBar extends StatelessWidget {
 
           const SizedBox(width: 8),
 
-          // Model selector
+          // Settings / model selector
           GestureDetector(
             onTap: onModelSelect,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: SvgPicture.asset(SvgPaths.icSettings,
-                  width: 20, height: 20),
+            child: GlassContainer(
+              borderRadius: 50,
+              padding: const EdgeInsets.all(8),
+              tintOpacity: 0.08,
+              child: KrivanaSvg(SvgPaths.icSettings, size: 18),
             ),
           ),
           const SizedBox(width: 8),
@@ -95,8 +97,7 @@ class ChatInputBar extends StatelessWidget {
               borderRadius: 50,
               padding: const EdgeInsets.all(10),
               tintOpacity: 0.12,
-              child:
-                  SvgPicture.asset(SvgPaths.icSend, width: 18, height: 18),
+              child: KrivanaSvg(SvgPaths.icSend, size: 18),
             ),
           ),
         ],

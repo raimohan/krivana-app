@@ -5,8 +5,10 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val appId = "com.krivana.krivana"
+
 android {
-    namespace = "com.krivana.krivana"
+    namespace = appId
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 
@@ -16,17 +18,15 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
-    }
-
     defaultConfig {
-        applicationId = "com.krivana.krivana"
+        applicationId = appId
         minSdk = 24
         targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
+        // Required by flutter_appauth Android manifest placeholders.
+        manifestPlaceholders["appAuthRedirectScheme"] = appId
     }
 
     buildTypes {
@@ -35,6 +35,12 @@ android {
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 

@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/svg_paths.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../presentation/providers/app_providers.dart';
 import '../../widgets/glass/glass_container.dart';
+import '../../widgets/svg/krivana_svg.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -37,6 +38,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -56,8 +64,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 children: [
                   GestureDetector(
                     onTap: () => context.pop(),
-                    child: SvgPicture.asset(SvgPaths.icBack,
-                        width: 24, height: 24),
+                    child: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 20,
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Text(
@@ -153,6 +166,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ],
                           ),
                         ),
+                        const Divider(height: 24),
+                        GestureDetector(
+                          onTap: () => context.push('/backend-connect'),
+                          child: _SettingRow(
+                            title: 'Change Backend',
+                            trailing: Text(
+                              'Configure',
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.accentPurple,
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -168,8 +194,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       onTap: () => context.push('/api-keys'),
                       child: _SettingRow(
                         title: 'Manage API Keys',
-                        trailing: SvgPicture.asset(SvgPaths.icChevronRight,
-                            width: 16, height: 16),
+                        trailing: KrivanaSvg(SvgPaths.icChevronRight, size: 16),
                       ),
                     ),
                   ),
@@ -234,8 +259,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         _SettingRow(
                           title: 'User Profile SVG',
                           subtitle: 'Upload your avatar',
-                          trailing: SvgPicture.asset(SvgPaths.icChevronRight,
-                              width: 16, height: 16),
+                          trailing: KrivanaSvg(SvgPaths.icChevronRight, size: 16),
                         ),
                         const Divider(height: 24),
                         GestureDetector(
@@ -276,39 +300,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         const Divider(height: 24),
                         GestureDetector(
                           onTap: () {
-                            // TODO: check for updates
+                            HapticFeedback.lightImpact();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('You are on the latest version')),
+                            );
                           },
                           child: _SettingRow(
                             title: 'Check for Updates',
-                            trailing: SvgPicture.asset(
-                                SvgPaths.icChevronRight,
-                                width: 16,
-                                height: 16),
+                            trailing: KrivanaSvg(SvgPaths.icChevronRight, size: 16),
                           ),
                         ),
                         const Divider(height: 24),
-                        _SettingRow(
-                          title: 'Privacy Policy',
-                          trailing: SvgPicture.asset(
-                              SvgPaths.icExternalLink,
-                              width: 16,
-                              height: 16),
+                        GestureDetector(
+                          onTap: () => _openUrl('https://krivana.dev/privacy'),
+                          child: _SettingRow(
+                            title: 'Privacy Policy',
+                            trailing: KrivanaSvg(SvgPaths.icExternalLink, size: 16),
+                          ),
                         ),
                         const Divider(height: 24),
-                        _SettingRow(
-                          title: 'Terms of Service',
-                          trailing: SvgPicture.asset(
-                              SvgPaths.icExternalLink,
-                              width: 16,
-                              height: 16),
+                        GestureDetector(
+                          onTap: () => _openUrl('https://krivana.dev/terms'),
+                          child: _SettingRow(
+                            title: 'Terms of Service',
+                            trailing: KrivanaSvg(SvgPaths.icExternalLink, size: 16),
+                          ),
                         ),
                         const Divider(height: 24),
-                        _SettingRow(
-                          title: 'Open Source Licenses',
-                          trailing: SvgPicture.asset(
-                              SvgPaths.icChevronRight,
-                              width: 16,
-                              height: 16),
+                        GestureDetector(
+                          onTap: () => showLicensePage(
+                            context: context,
+                            applicationName: 'Krivana',
+                            applicationVersion: _appVersion,
+                          ),
+                          child: _SettingRow(
+                            title: 'Open Source Licenses',
+                            trailing: KrivanaSvg(SvgPaths.icChevronRight, size: 16),
+                          ),
                         ),
                       ],
                     ),

@@ -2,17 +2,20 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/svg_paths.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../data/models/chat_model.dart';
+import '../../../services/ai/ai_service.dart';
 import '../../widgets/chat/chat_bubble.dart';
 import '../../widgets/chat/chat_input_bar.dart';
 import '../../widgets/chat/chat_sidebar.dart';
 import '../../widgets/chat/thinking_indicator.dart';
 import '../../widgets/glass/glass_container.dart';
+import '../../widgets/svg/krivana_svg.dart';
 
 const _suggestions = [
   'I want to build a SaaS landing page...',
@@ -35,39 +38,120 @@ class PlanningChatScreen extends ConsumerStatefulWidget {
   ConsumerState<PlanningChatScreen> createState() => _PlanningChatScreenState();
 }
 
-class _PlanningChatScreenState extends ConsumerState<PlanningChatScreen> {
+class _PlanningChatScreenState extends ConsumerState<PlanningChatScreen>
+    with TickerProviderStateMixin {
   final _inputController = TextEditingController();
   final _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
-  final List<ChatSession> _sessions = [];
+  List<ChatSession> _sessions = [];
   bool _sidebarOpen = false;
   bool _isThinking = false;
   bool _inputFocused = false;
+  String _chatTitle = 'Untitled';
+  String? _currentSessionId;
+  bool _editingTitle = false;
+  final _titleController = TextEditingController();
 
   // Typing suggestion state
   int _suggestionIndex = 0;
   String _currentSuggestion = '';
   Timer? _typingTimer;
-  Timer? _cycleTimer;
   int _charPos = 0;
   bool _isTypingForward = true;
+
+  // Gradient animation
+  late AnimationController _gradientController;
+  late Animation<Color?> _gradientColor1;
+  late Animation<Color?> _gradientColor2;
 
   @override
   void initState() {
     super.initState();
+
+    // Gradient animation for "today?" text
+    _gradientController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+    _gradientColor1 = ColorTween(
+      begin: AppColors.accentPurple,
+      end: AppColors.accentPink,
+    ).animate(CurvedAnimation(parent: _gradientController, curve: Curves.easeInOut));
+    _gradientColor2 = ColorTween(
+      begin: AppColors.accentPink,
+      end: AppColors.accentPurple,
+    ).animate(CurvedAnimation(parent: _gradientController, curve: Curves.easeInOut));
+
     _inputController.addListener(() {
       final hasFocus = _inputController.text.isNotEmpty;
       if (hasFocus != _inputFocused) {
         setState(() => _inputFocused = hasFocus);
       }
     });
+    _loadSessions();
     if (_messages.isEmpty) {
       _startSuggestionCycle();
     }
   }
 
+  Future<void> _loadSessions() async {
+    final box = Hive.box(AppConstants.hiveChatBox);
+    final raw = box.get('planning_sessions');
+    if (raw != null) {
+      final list = (raw as List).cast<Map>();
+      _sessions = list.map((e) {
+        final map = Map<String, dynamic>.from(e);
+        return ChatSession(
+          id: map['id'] as String,
+          title: map['title'] as String,
+          isPinned: map['is_pinned'] as bool? ?? false,
+          createdAt: map['created_at'] != null
+              ? DateTime.parse(map['created_at'] as String)
+              : null,
+          messages: (map['messages'] as List?)
+                  ?.cast<Map>()
+                  .map((m) =>
+                      ChatMessage.fromJson(Map<String, dynamic>.from(m)))
+                  .toList() ??
+              [],
+        );
+      }).toList();
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _saveSessions() async {
+    final box = Hive.box(AppConstants.hiveChatBox);
+    final data = _sessions.map((s) => {
+          'id': s.id,
+          'title': s.title,
+          'is_pinned': s.isPinned,
+          'created_at': s.createdAt?.toIso8601String(),
+          'messages': s.messages.map((m) => m.toJson()).toList(),
+        }).toList();
+    await box.put('planning_sessions', data);
+  }
+
+  void _saveCurrentSession() {
+    if (_currentSessionId == null || _messages.isEmpty) return;
+    final idx = _sessions.indexWhere((s) => s.id == _currentSessionId);
+    final session = ChatSession(
+      id: _currentSessionId!,
+      title: _chatTitle,
+      createdAt: idx >= 0
+          ? _sessions[idx].createdAt
+          : DateTime.now(),
+      messages: List.from(_messages),
+    );
+    if (idx >= 0) {
+      _sessions[idx] = session;
+    } else {
+      _sessions.insert(0, session);
+    }
+    _saveSessions();
+  }
+
   void _startSuggestionCycle() {
-    _cycleTimer?.cancel();
     _typingTimer?.cancel();
     _charPos = 0;
     _isTypingForward = true;
@@ -84,12 +168,10 @@ class _PlanningChatScreenState extends ConsumerState<PlanningChatScreen> {
       if (_isTypingForward) {
         if (_charPos < target.length) {
           _charPos++;
-          setState(() {
-            _currentSuggestion = target.substring(0, _charPos);
-          });
+          setState(
+              () => _currentSuggestion = target.substring(0, _charPos));
           _typeNextChar();
         } else {
-          // Pause at end, then reverse
           _typingTimer = Timer(const Duration(milliseconds: 1200), () {
             _isTypingForward = false;
             _typeNextChar();
@@ -98,12 +180,10 @@ class _PlanningChatScreenState extends ConsumerState<PlanningChatScreen> {
       } else {
         if (_charPos > 0) {
           _charPos--;
-          setState(() {
-            _currentSuggestion = target.substring(0, _charPos);
-          });
+          setState(
+              () => _currentSuggestion = target.substring(0, _charPos));
           _typeNextChar();
         } else {
-          // Move to next suggestion
           _suggestionIndex++;
           _isTypingForward = true;
           _typingTimer = Timer(const Duration(milliseconds: 300), () {
@@ -114,9 +194,16 @@ class _PlanningChatScreenState extends ConsumerState<PlanningChatScreen> {
     });
   }
 
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     final text = _inputController.text.trim();
     if (text.isEmpty) return;
+
+    // Create session on first message
+    if (_currentSessionId == null) {
+      _currentSessionId = const Uuid().v4();
+      // Auto-title from first message
+      _chatTitle = text.length > 30 ? '${text.substring(0, 30)}...' : text;
+    }
 
     final userMsg = ChatMessage(
       id: const Uuid().v4(),
@@ -131,9 +218,31 @@ class _PlanningChatScreenState extends ConsumerState<PlanningChatScreen> {
     });
     _inputController.clear();
     _scrollToBottom();
+    _saveCurrentSession();
 
-    // Simulate AI response
-    Future.delayed(const Duration(seconds: 2), () {
+    // Call real AI API
+    try {
+      final aiService = AiService.instance;
+      await aiService.loadConfig();
+
+      final apiMessages = _messages.map((m) => {
+        'role': m.role == ChatRole.user ? 'user' : 'assistant',
+        'content': m.content,
+      }).toList();
+
+      final response = await aiService.sendMessage(apiMessages);
+
+      if (!mounted) return;
+      setState(() {
+        _isThinking = false;
+        _messages.add(ChatMessage(
+          id: const Uuid().v4(),
+          role: ChatRole.assistant,
+          content: response,
+          timestamp: DateTime.now(),
+        ));
+      });
+    } catch (e) {
       if (!mounted) return;
       setState(() {
         _isThinking = false;
@@ -141,17 +250,14 @@ class _PlanningChatScreenState extends ConsumerState<PlanningChatScreen> {
           id: const Uuid().v4(),
           role: ChatRole.assistant,
           content:
-              'I can help you with that! Let me think about the best approach...\n\n'
-              'Here are some ideas to consider:\n'
-              '- Start with a clear project structure\n'
-              '- Define your tech stack early\n'
-              '- Plan the core features first\n\n'
-              'Would you like me to elaborate on any of these?',
+              'Error: ${e.toString().replaceAll('Exception: ', '')}\n\nPlease check your API key in Settings > AI Configuration.',
           timestamp: DateTime.now(),
         ));
       });
-      _scrollToBottom();
-    });
+    }
+
+    _scrollToBottom();
+    _saveCurrentSession();
   }
 
   void _scrollToBottom() {
@@ -166,12 +272,39 @@ class _PlanningChatScreenState extends ConsumerState<PlanningChatScreen> {
     });
   }
 
+  void _loadSession(String sessionId) {
+    final session = _sessions.firstWhere((s) => s.id == sessionId,
+        orElse: () => const ChatSession(id: '', title: ''));
+    if (session.id.isEmpty) return;
+
+    setState(() {
+      _messages.clear();
+      _messages.addAll(session.messages);
+      _chatTitle = session.title;
+      _currentSessionId = session.id;
+      _sidebarOpen = false;
+    });
+  }
+
+  void _startNewChat() {
+    _saveCurrentSession();
+    setState(() {
+      _messages.clear();
+      _chatTitle = 'Untitled';
+      _currentSessionId = null;
+      _sidebarOpen = false;
+    });
+    _startSuggestionCycle();
+  }
+
   @override
   void dispose() {
+    _saveCurrentSession();
     _inputController.dispose();
     _scrollController.dispose();
+    _titleController.dispose();
     _typingTimer?.cancel();
-    _cycleTimer?.cancel();
+    _gradientController.dispose();
     super.dispose();
   }
 
@@ -184,13 +317,12 @@ class _PlanningChatScreenState extends ConsumerState<PlanningChatScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            // Main content
             Column(
               children: [
-                // Top bar
+                // Top bar with title
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(
                     children: [
                       GestureDetector(
@@ -198,14 +330,83 @@ class _PlanningChatScreenState extends ConsumerState<PlanningChatScreen> {
                           HapticFeedback.lightImpact();
                           setState(() => _sidebarOpen = !_sidebarOpen);
                         },
-                        child: SvgPicture.asset(SvgPaths.icMenuHamburger,
-                            width: 24, height: 24),
+                        child: KrivanaSvg(SvgPaths.icMenuHamburger, size: 24),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 12),
+                      // Title with edit
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() => _editingTitle = true);
+                            _titleController.text = _chatTitle;
+                          },
+                          child: _editingTitle
+                              ? TextField(
+                                  controller: _titleController,
+                                  autofocus: true,
+                                  style: AppTextStyles.body.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? AppColors.darkTextPrimary
+                                        : AppColors.lightTextPrimary,
+                                  ),
+                                  decoration: const InputDecoration(
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                  onSubmitted: (val) {
+                                    setState(() {
+                                      _chatTitle =
+                                          val.isEmpty ? 'Untitled' : val;
+                                      _editingTitle = false;
+                                    });
+                                    _saveCurrentSession();
+                                  },
+                                )
+                              : Text(
+                                  _chatTitle,
+                                  style: AppTextStyles.body.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? AppColors.darkTextPrimary
+                                        : AppColors.lightTextPrimary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                        ),
+                      ),
+                      if (!_editingTitle)
+                        GestureDetector(
+                          onTap: () {
+                            setState(() => _editingTitle = true);
+                            _titleController.text = _chatTitle;
+                          },
+                          child: KrivanaSvg(SvgPaths.icEdit, size: 18),
+                        ),
+                      const SizedBox(width: 12),
                       GestureDetector(
-                        onTap: () {},
-                        child: SvgPicture.asset(SvgPaths.icSettings,
-                            width: 22, height: 22),
+                        onTap: _startNewChat,
+                        child: GlassContainer(
+                          borderRadius: 20,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              KrivanaSvg(SvgPaths.icPlus, size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                'New Chat',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: isDark
+                                      ? AppColors.darkTextPrimary
+                                      : AppColors.lightTextPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -213,9 +414,8 @@ class _PlanningChatScreenState extends ConsumerState<PlanningChatScreen> {
 
                 // Chat area
                 Expanded(
-                  child: isEmpty
-                      ? _buildEmptyState(isDark)
-                      : _buildMessages(isDark),
+                  child:
+                      isEmpty ? _buildEmptyState(isDark) : _buildMessages(isDark),
                 ),
 
                 // Prompt chips
@@ -236,7 +436,6 @@ class _PlanningChatScreenState extends ConsumerState<PlanningChatScreen> {
                           borderRadius: 20,
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 8),
-                          tintOpacity: 0.06,
                           child: Text(
                             _promptChips[index],
                             style: AppTextStyles.caption.copyWith(
@@ -270,18 +469,17 @@ class _PlanningChatScreenState extends ConsumerState<PlanningChatScreen> {
               ),
               ChatSidebar(
                 sessions: _sessions,
-                pinnedSessions: _sessions.where((s) => s.isPinned).toList(),
-                onNewChat: () {
-                  setState(() {
-                    _messages.clear();
-                    _sidebarOpen = false;
-                  });
-                  _startSuggestionCycle();
-                },
-                onSelectSession: (id) {
-                  setState(() => _sidebarOpen = false);
-                },
+                pinnedSessions:
+                    _sessions.where((s) => s.isPinned).toList(),
+                onNewChat: _startNewChat,
+                onSelectSession: _loadSession,
                 onClose: () => setState(() => _sidebarOpen = false),
+                onDeleteSession: (id) {
+                  setState(() {
+                    _sessions.removeWhere((s) => s.id == id);
+                  });
+                  _saveSessions();
+                },
               ),
             ],
           ],
@@ -295,33 +493,35 @@ class _PlanningChatScreenState extends ConsumerState<PlanningChatScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Greeting
-          RichText(
-            textAlign: TextAlign.center,
-            text: TextSpan(
-              style: AppTextStyles.chatGreeting.copyWith(
-                color: isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.lightTextSecondary,
-              ),
-              children: [
-                const TextSpan(text: 'What are you planning\nto build '),
-                TextSpan(
-                  text: 'today?',
-                  style: AppTextStyles.chatGreeting.copyWith(
-                    foreground: Paint()
-                      ..shader = const LinearGradient(
-                        colors: [AppColors.accentPink, AppColors.accentPurple],
-                      ).createShader(
-                          const Rect.fromLTWH(0, 0, 100, 40)),
-                  ),
+          AnimatedBuilder(
+            animation: _gradientController,
+            builder: (_, __) => RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: AppTextStyles.chatGreeting.copyWith(
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary,
                 ),
-              ],
+                children: [
+                  const TextSpan(text: 'What are you planning\nto build '),
+                  TextSpan(
+                    text: 'today?',
+                    style: AppTextStyles.chatGreeting.copyWith(
+                      foreground: Paint()
+                        ..shader = LinearGradient(
+                          colors: [
+                            _gradientColor1.value ?? AppColors.accentPurple,
+                            _gradientColor2.value ?? AppColors.accentPink,
+                          ],
+                        ).createShader(const Rect.fromLTWH(0, 0, 100, 40)),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 24),
-
-          // Typing suggestion
           if (_currentSuggestion.isNotEmpty && !_inputFocused)
             Text(
               _currentSuggestion,

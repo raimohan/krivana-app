@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/constants/svg_paths.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../data/models/file_model.dart';
+import '../svg/krivana_svg.dart';
 
 class FileTreeTile extends StatefulWidget {
   const FileTreeTile({
@@ -122,15 +122,17 @@ class _FileTreeTileState extends State<FileTreeTile>
                   AnimatedRotation(
                     turns: _expanded ? 0.25 : 0,
                     duration: const Duration(milliseconds: 200),
-                    child: SvgPicture.asset(SvgPaths.icChevronRight,
-                        width: 14, height: 14),
+                    child: KrivanaSvg(
+                      SvgPaths.icChevronRight,
+                      width: 14,
+                      height: 14,
+                    ),
                   ),
                   const SizedBox(width: 6),
-                  SvgPicture.asset(SvgPaths.icFolder,
-                      width: 18, height: 18),
+                  const KrivanaSvg(SvgPaths.icFolder, width: 18, height: 18),
                 ] else ...[
                   const SizedBox(width: 20),
-                  SvgPicture.asset(
+                  KrivanaSvg(
                     SvgPaths.fileIcon(file.extension),
                     width: 18,
                     height: 18,
@@ -159,8 +161,11 @@ class _FileTreeTileState extends State<FileTreeTile>
                     onTap: widget.onMenuTap,
                     child: Padding(
                       padding: const EdgeInsets.all(4),
-                      child: SvgPicture.asset(SvgPaths.icThreeDots,
-                          width: 16, height: 16),
+                      child: const KrivanaSvg(
+                        SvgPaths.icThreeDots,
+                        width: 16,
+                        height: 16,
+                      ),
                     ),
                   ),
               ],

@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import '../../../core/constants/svg_paths.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../widgets/glass/glass_container.dart';
-import '../../widgets/common/krivana_button.dart';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({super.key});
@@ -48,57 +45,96 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isDismissible: true,
-      builder: (_) => GlassContainer(
-        borderRadius: 20,
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Scanned Result',
-              style: AppTextStyles.heading2.copyWith(
-                color: Colors.white,
+      useSafeArea: true,
+      builder: (_) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: GlassContainer(
+              borderRadius: 20,
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Scanned Result',
+                    style: AppTextStyles.heading2.copyWith(
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  GlassContainer(
+                    borderRadius: 12,
+                    padding: const EdgeInsets.all(12),
+                    tintOpacity: isDark ? 0.06 : 0.12,
+                    child: Text(
+                      _scannedValue ?? '',
+                      style: AppTextStyles.body.copyWith(
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.lightTextPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: isDark
+                                ? AppColors.darkCard
+                                : AppColors.lightCard,
+                            foregroundColor: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.lightTextPrimary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
+                              side: BorderSide(
+                                color: isDark
+                                    ? AppColors.darkBorder
+                                    : AppColors.lightBorder,
+                              ),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: () {
+                            Clipboard.setData(
+                                ClipboardData(text: _scannedValue ?? ''));
+                            Navigator.pop(context);
+                          },
+                          child: Text('Copy', style: AppTextStyles.buttonLabel),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.accentPurple,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            context.pop(_scannedValue);
+                          },
+                          child: Text('Use this URL', style: AppTextStyles.buttonLabel),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            GlassContainer(
-              borderRadius: 12,
-              padding: const EdgeInsets.all(12),
-              tintOpacity: 0.06,
-              child: Text(
-                _scannedValue ?? '',
-                style: AppTextStyles.body.copyWith(color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: KrivanaButton(
-                    label: 'Copy',
-                    isPrimary: false,
-                    onTap: () {
-                      Clipboard.setData(
-                          ClipboardData(text: _scannedValue ?? ''));
-                      Navigator.pop(context);
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: KrivanaButton(
-                    label: 'Use this URL',
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.pop(_scannedValue);
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     ).then((_) {
       // Allow scanning again after dismissal
       setState(() => _scannedValue = null);
@@ -161,8 +197,11 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               child: GlassContainer(
                 borderRadius: 50,
                 padding: const EdgeInsets.all(10),
-                child: SvgPicture.asset(SvgPaths.icBack,
-                    width: 20, height: 20),
+                child: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 18,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),

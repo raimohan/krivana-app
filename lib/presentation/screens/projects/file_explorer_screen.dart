@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/svg_paths.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../data/models/file_model.dart';
+import '../../widgets/common/krivana_text_field.dart';
+import '../../widgets/common/krivana_button.dart';
 import '../../widgets/editor/file_tree_tile.dart';
 import '../../widgets/glass/glass_container.dart';
+import '../../widgets/svg/krivana_svg.dart';
 
 class FileExplorerScreen extends ConsumerStatefulWidget {
   const FileExplorerScreen({super.key, required this.projectId});
@@ -32,13 +37,67 @@ class _FileExplorerScreenState extends ConsumerState<FileExplorerScreen> {
   }
 
   Future<void> _loadFiles() async {
-    // TODO: Load from backend
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (!mounted) return;
-    setState(() {
+    final box = Hive.box(AppConstants.hiveProjectsBox);
+    final raw = box.get('files_${widget.projectId}');
+    if (raw != null) {
+      final list = (raw as List).cast<Map>();
+      _files = list.map((e) => FileItem.fromJson(Map<String, dynamic>.from(e))).toList();
+    } else {
       _files = [];
-      _isLoading = false;
-    });
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _saveFiles() async {
+    final box = Hive.box(AppConstants.hiveProjectsBox);
+    await box.put('files_${widget.projectId}', _files.map((f) => f.toJson()).toList());
+  }
+
+  void _createFile(String name) {
+    if (name.trim().isEmpty) return;
+    final file = FileItem(
+      name: name.trim(),
+      path: '/${name.trim()}',
+      isDirectory: name.trim().endsWith('/'),
+      content: '',
+    );
+    setState(() => _files.add(file));
+    _saveFiles();
+  }
+
+  Future<void> _importFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.any,
+      );
+      if (result != null) {
+        for (final file in result.files) {
+          if (file.name.isNotEmpty) {
+            final item = FileItem(
+              name: file.name,
+              path: '/${file.name}',
+              isDirectory: false,
+              content: '',
+              size: file.size,
+            );
+            setState(() => _files.add(item));
+          }
+        }
+        _saveFiles();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to import: $e')),
+        );
+      }
+    }
+  }
+
+  void _deleteFile(String path) {
+    setState(() => _files.removeWhere((f) => f.path == path));
+    _saveFiles();
   }
 
   void _toggleSelection(String path) {
@@ -81,8 +140,7 @@ class _FileExplorerScreenState extends ConsumerState<FileExplorerScreen> {
                               _selected.clear();
                             });
                           },
-                          child: SvgPicture.asset(SvgPaths.icClose,
-                              width: 24, height: 24),
+                          child: KrivanaSvg(SvgPaths.icClose, size: 24),
                         ),
                         const SizedBox(width: 12),
                         Text(
@@ -100,8 +158,13 @@ class _FileExplorerScreenState extends ConsumerState<FileExplorerScreen> {
                       children: [
                         GestureDetector(
                           onTap: () => context.pop(),
-                          child: SvgPicture.asset(SvgPaths.icBack,
-                              width: 24, height: 24),
+                          child: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            size: 20,
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.lightTextPrimary,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -116,8 +179,7 @@ class _FileExplorerScreenState extends ConsumerState<FileExplorerScreen> {
                         ),
                         GestureDetector(
                           onTap: () => _showFileMenu(context),
-                          child: SvgPicture.asset(SvgPaths.icThreeDots,
-                              width: 24, height: 24),
+                          child: KrivanaSvg(SvgPaths.icThreeDots, size: 24),
                         ),
                       ],
                     ),
@@ -132,8 +194,7 @@ class _FileExplorerScreenState extends ConsumerState<FileExplorerScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              SvgPicture.asset(SvgPaths.icFileExplorer,
-                                  width: 56, height: 56),
+                              KrivanaSvg(SvgPaths.icFileExplorer, size: 56),
                               const SizedBox(height: 16),
                               Text(
                                 'No files yet',
@@ -229,14 +290,13 @@ class _FileExplorerScreenState extends ConsumerState<FileExplorerScreen> {
                 GestureDetector(
                   onTap: () {
                     HapticFeedback.lightImpact();
-                    // TODO: show create file dialog
+                    _showCreateFileDialog();
                   },
                   child: GlassContainer(
                     borderRadius: 50,
                     padding: const EdgeInsets.all(14),
                     tintOpacity: 0.12,
-                    child: SvgPicture.asset(SvgPaths.icPlus,
-                        width: 20, height: 20),
+                    child: KrivanaSvg(SvgPaths.icPlus, size: 20),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -244,14 +304,13 @@ class _FileExplorerScreenState extends ConsumerState<FileExplorerScreen> {
                 GestureDetector(
                   onTap: () {
                     HapticFeedback.lightImpact();
-                    // TODO: open file picker
+                    _importFile();
                   },
                   child: GlassContainer(
                     borderRadius: 50,
                     padding: const EdgeInsets.all(14),
                     tintOpacity: 0.12,
-                    child: SvgPicture.asset(SvgPaths.icUpload,
-                        width: 20, height: 20),
+                    child: KrivanaSvg(SvgPaths.icUpload, size: 20),
                   ),
                 ),
               ],
@@ -263,34 +322,94 @@ class _FileExplorerScreenState extends ConsumerState<FileExplorerScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => GlassContainer(
-        borderRadius: 20,
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading:
-                  SvgPicture.asset(SvgPaths.icPlus, width: 20, height: 20),
-              title: const Text('New File'),
-              onTap: () => Navigator.pop(context),
+      builder: (_) => SafeArea(
+        child: GlassContainer(
+          borderRadius: 20,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: KrivanaSvg(SvgPaths.icPlus, size: 20),
+                title: Text('New File',
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white : Colors.black)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showCreateFileDialog();
+                },
+              ),
+              ListTile(
+                leading: KrivanaSvg(SvgPaths.icUpload, size: 20),
+                title: Text('Import File',
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white : Colors.black)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _importFile();
+                },
+              ),
+              ListTile(
+                leading: KrivanaSvg(SvgPaths.icRefresh, size: 20),
+                title: Text('Refresh',
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white : Colors.black)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _loadFiles();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showCreateFileDialog() {
+    final controller = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: SafeArea(
+          child: GlassContainer(
+            borderRadius: 20,
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'New File',
+                  style: AppTextStyles.heading2.copyWith(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.lightTextPrimary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                KrivanaTextField(
+                  controller: controller,
+                  hint: 'File name (e.g. main.dart)',
+                  autofocus: true,
+                ),
+                const SizedBox(height: 16),
+                KrivanaButton(
+                  label: 'Create',
+                  width: double.infinity,
+                  onTap: () {
+                    _createFile(controller.text);
+                    Navigator.pop(ctx);
+                  },
+                ),
+              ],
             ),
-            ListTile(
-              leading: SvgPicture.asset(SvgPaths.icUpload,
-                  width: 20, height: 20),
-              title: const Text('Import File'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: SvgPicture.asset(SvgPaths.icRefresh,
-                  width: 20, height: 20),
-              title: const Text('Refresh'),
-              onTap: () {
-                Navigator.pop(context);
-                _loadFiles();
-              },
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -300,37 +419,49 @@ class _FileExplorerScreenState extends ConsumerState<FileExplorerScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => GlassContainer(
-        borderRadius: 20,
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading:
-                  SvgPicture.asset(SvgPaths.icEdit, width: 20, height: 20),
-              title: const Text('Rename'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: SvgPicture.asset(SvgPaths.icMove,
-                  width: 20, height: 20),
-              title: const Text('Move'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading:
-                  SvgPicture.asset(SvgPaths.icCopy, width: 20, height: 20),
-              title: const Text('Copy'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: SvgPicture.asset(SvgPaths.icTrash,
-                  width: 20, height: 20),
-              title: const Text('Delete'),
-              onTap: () => Navigator.pop(context),
-            ),
-          ],
+      builder: (_) => SafeArea(
+        child: GlassContainer(
+          borderRadius: 20,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: KrivanaSvg(SvgPaths.icEdit, size: 20),
+                title: Text('Rename',
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white : Colors.black)),
+                onTap: () => Navigator.pop(context),
+              ),
+              ListTile(
+                leading: KrivanaSvg(SvgPaths.icMove, size: 20),
+                title: Text('Move',
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white : Colors.black)),
+                onTap: () => Navigator.pop(context),
+              ),
+              ListTile(
+                leading: KrivanaSvg(SvgPaths.icCopy, size: 20),
+                title: Text('Copy',
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white : Colors.black)),
+                onTap: () => Navigator.pop(context),
+              ),
+              ListTile(
+                leading: KrivanaSvg(SvgPaths.icTrash, size: 20,
+                    color: AppColors.error),
+                title: const Text('Delete',
+                    style: TextStyle(color: AppColors.error)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _deleteFile(file.path);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

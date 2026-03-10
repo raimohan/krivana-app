@@ -6,7 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../data/models/chat_model.dart';
 import '../../widgets/glass/glass_container.dart';
-import '../../widgets/svg/svg_icon.dart';
+import '../../widgets/svg/krivana_svg.dart';
 
 class ChatBubble extends StatelessWidget {
   const ChatBubble({
@@ -37,8 +37,7 @@ class ChatBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isUser) ...[
-            // AI avatar
-            const SvgIcon(SvgPaths.avatarAiKrivana, size: 28),
+            KrivanaSvg(SvgPaths.avatarAiKrivana, size: 28, autoTheme: false),
             const SizedBox(width: 8),
           ],
           Flexible(
@@ -78,13 +77,11 @@ class ChatBubble extends StatelessWidget {
                           ),
                         ),
                 ),
-
-                // Actions
                 const SizedBox(height: 4),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _ActionIcon(
+                    _AnimatedActionIcon(
                       svgPath: SvgPaths.icCopy,
                       onTap: () {
                         Clipboard.setData(
@@ -94,19 +91,23 @@ class ChatBubble extends StatelessWidget {
                     ),
                     if (!isUser) ...[
                       const SizedBox(width: 8),
-                      _ActionIcon(
+                      _AnimatedActionIcon(
                         svgPath: SvgPaths.icRegenerate,
                         onTap: onRegenerate,
                       ),
                       const SizedBox(width: 8),
-                      _ActionIcon(
+                      _AnimatedActionIcon(
                         svgPath: SvgPaths.icLike,
                         onTap: onLike,
+                        fillOnTap: true,
+                        activeColor: AppColors.success,
                       ),
                       const SizedBox(width: 8),
-                      _ActionIcon(
+                      _AnimatedActionIcon(
                         svgPath: SvgPaths.icDislike,
                         onTap: onDislike,
+                        fillOnTap: true,
+                        activeColor: AppColors.error,
                       ),
                     ],
                   ],
@@ -116,7 +117,7 @@ class ChatBubble extends StatelessWidget {
           ),
           if (isUser) ...[
             const SizedBox(width: 8),
-            const SvgIcon(SvgPaths.avatarUserDefault, size: 28),
+            KrivanaSvg(SvgPaths.avatarUserDefault, size: 28),
           ],
         ],
       ),
@@ -124,22 +125,74 @@ class ChatBubble extends StatelessWidget {
   }
 }
 
-class _ActionIcon extends StatelessWidget {
+class _AnimatedActionIcon extends StatefulWidget {
   final String svgPath;
   final VoidCallback? onTap;
+  final bool fillOnTap;
+  final Color? activeColor;
 
-  const _ActionIcon({required this.svgPath, this.onTap});
+  const _AnimatedActionIcon({
+    required this.svgPath,
+    this.onTap,
+    this.fillOnTap = false,
+    this.activeColor,
+  });
+
+  @override
+  State<_AnimatedActionIcon> createState() => _AnimatedActionIconState();
+}
+
+class _AnimatedActionIconState extends State<_AnimatedActionIcon>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+  bool _isActive = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _scale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.4), weight: 40),
+      TweenSequenceItem(tween: Tween(begin: 1.4, end: 0.8), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 0.8, end: 1.0), weight: 30),
+    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
-        onTap?.call();
+        _controller.forward(from: 0);
+        if (widget.fillOnTap) {
+          setState(() => _isActive = !_isActive);
+        }
+        widget.onTap?.call();
       },
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: SvgIcon(svgPath, size: 16),
+      child: AnimatedBuilder(
+        animation: _scale,
+        builder: (_, child) => Transform.scale(
+          scale: _scale.value,
+          child: child,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: KrivanaSvg(
+            widget.svgPath,
+            size: 16,
+            color: _isActive ? widget.activeColor : null,
+          ),
+        ),
       ),
     );
   }
