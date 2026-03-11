@@ -421,7 +421,7 @@ class _PlanningChatScreenState extends ConsumerState<PlanningChatScreen>
                 // Prompt chips
                 if (isEmpty && !_inputFocused)
                   SizedBox(
-                    height: 40,
+                    height: 50,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -435,11 +435,14 @@ class _PlanningChatScreenState extends ConsumerState<PlanningChatScreen>
                         child: GlassContainer(
                           borderRadius: 20,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 8),
-                          child: Text(
-                            _promptChips[index],
-                            style: AppTextStyles.caption.copyWith(
-                              color: AppColors.accentPurple,
+                              horizontal: 16, vertical: 10),
+                          child: Center(
+                            child: Text(
+                              _promptChips[index],
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.accentPurple,
+                                height: 1.2,
+                              ),
                             ),
                           ),
                         ),

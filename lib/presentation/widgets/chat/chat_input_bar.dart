@@ -30,17 +30,11 @@ class ChatInputBar extends StatelessWidget {
       borderRadius: 28,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Upload/attach button - circular like send
-          GestureDetector(
+          _InputCircleButton(
             onTap: onAttach,
-            child: GlassContainer(
-              borderRadius: 50,
-              padding: const EdgeInsets.all(8),
-              tintOpacity: 0.08,
-              child: KrivanaSvg(SvgPaths.icUpload, size: 18),
-            ),
+            iconPath: SvgPaths.icUpload,
           ),
           const SizedBox(width: 10),
 
@@ -52,10 +46,13 @@ class ChatInputBar extends StatelessWidget {
                 controller: controller,
                 maxLines: null,
                 textInputAction: TextInputAction.newline,
+                textAlignVertical: TextAlignVertical.center,
+                strutStyle: const StrutStyle(height: 1.35, forceStrutHeight: true),
                 style: AppTextStyles.body.copyWith(
                   color: isDark
                       ? AppColors.darkTextPrimary
                       : AppColors.lightTextPrimary,
+                  height: 1.35,
                 ),
                 decoration: InputDecoration(
                   hintText: hintText,
@@ -63,8 +60,10 @@ class ChatInputBar extends StatelessWidget {
                     color: isDark
                         ? AppColors.darkTextMuted
                         : AppColors.lightTextSecondary,
+                    height: 1.35,
                   ),
                   border: InputBorder.none,
+                  isDense: true,
                   contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 ),
               ),
@@ -73,34 +72,53 @@ class ChatInputBar extends StatelessWidget {
 
           const SizedBox(width: 8),
 
-          // Settings / model selector
-          GestureDetector(
+          _InputCircleButton(
             onTap: onModelSelect,
-            child: GlassContainer(
-              borderRadius: 50,
-              padding: const EdgeInsets.all(8),
-              tintOpacity: 0.08,
-              child: KrivanaSvg(SvgPaths.icSettings, size: 18),
-            ),
+            iconPath: SvgPaths.icSettings,
           ),
           const SizedBox(width: 8),
 
-          // Send button
-          GestureDetector(
+          _InputCircleButton(
             onTap: () {
               if (controller.text.trim().isNotEmpty) {
                 HapticFeedback.lightImpact();
                 onSend();
               }
             },
-            child: GlassContainer(
-              borderRadius: 50,
-              padding: const EdgeInsets.all(10),
-              tintOpacity: 0.12,
-              child: KrivanaSvg(SvgPaths.icSend, size: 18),
-            ),
+            iconPath: SvgPaths.icSend,
+            tintOpacity: 0.12,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _InputCircleButton extends StatelessWidget {
+  const _InputCircleButton({
+    required this.iconPath,
+    required this.onTap,
+    this.tintOpacity = 0.08,
+  });
+
+  final String iconPath;
+  final VoidCallback? onTap;
+  final double tintOpacity;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: GlassContainer(
+        borderRadius: 50,
+        padding: EdgeInsets.zero,
+        tintOpacity: tintOpacity,
+        width: 38,
+        height: 38,
+        child: Center(
+          child: KrivanaSvg(iconPath, size: 18),
+        ),
       ),
     );
   }

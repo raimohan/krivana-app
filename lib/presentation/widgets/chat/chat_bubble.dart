@@ -53,10 +53,12 @@ class ChatBubble extends StatelessWidget {
                   child: isUser
                       ? Text(
                           message.content,
+                          textAlign: TextAlign.start,
                           style: AppTextStyles.body.copyWith(
                             color: isDark
                                 ? AppColors.darkTextPrimary
                                 : AppColors.lightTextPrimary,
+                            height: 1.4,
                           ),
                         )
                       : MarkdownBody(
@@ -66,7 +68,9 @@ class ChatBubble extends StatelessWidget {
                               color: isDark
                                   ? AppColors.darkTextPrimary
                                   : AppColors.lightTextPrimary,
+                              height: 1.4,
                             ),
+                            pPadding: EdgeInsets.zero,
                             codeblockDecoration: BoxDecoration(
                               color: isDark
                                   ? const Color(0xFF1A1A2E)

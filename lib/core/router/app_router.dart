@@ -18,10 +18,13 @@ import '../../presentation/screens/deploy/deploy_screen.dart';
 import '../../presentation/screens/qr/qr_scanner_screen.dart';
 import '../../presentation/screens/projects/import_repo_screen.dart';
 
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final routerProvider = Provider<GoRouter>((ref) {
   final onboardingDone = ref.watch(onboardingCompleteProvider);
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
     routes: [
       GoRoute(

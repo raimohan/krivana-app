@@ -15,7 +15,6 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
-
   String _displayedName = '';
   Timer? _typeTimer;
   int _charIndex = 0;
@@ -53,18 +52,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         context.go('/backend-connect');
         return;
       }
+
       // Onboarding complete - check backend health but don't force reconfig
       final backendUrl = ref.read(backendUrlProvider);
       if (backendUrl != null && backendUrl.isNotEmpty) {
-        final isHealthy = await BackendService.instance.healthCheck();
+        BackendService.instance.configure(backendUrl);
+        final isHealthy = await BackendService.instance
+            .healthCheck()
+            .timeout(const Duration(seconds: 5), onTimeout: () => false);
         if (!mounted) return;
         if (isHealthy) {
-          ref.read(connectionStatusProvider.notifier).state = ConnectionStatus.connected;
+          ref.read(connectionStatusProvider.notifier).state =
+              ConnectionStatus.connected;
         } else {
           // Backend offline but onboarding done - mark as disconnected, still go to dashboard
-          ref.read(connectionStatusProvider.notifier).state = ConnectionStatus.disconnected;
+          ref.read(connectionStatusProvider.notifier).state =
+              ConnectionStatus.disconnected;
         }
       }
+
       // After onboarding is complete, always go to dashboard (will show offline indicator if needed)
       context.go('/dashboard');
     });
